@@ -6,9 +6,9 @@ project:
   language:     "Verilog"
   clock_hz:     100
   tiles:        "1x1"
-  top_module:   "tt_um_simple_alu"
+  top_module:   "tt_um_mac"
   source_files:
-    - "tt_um_simple_alu.v"
+    - "tt_um_mac.v"
 
 pinout:
   ui[0]: "ui_in[0]"
