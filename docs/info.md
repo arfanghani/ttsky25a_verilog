@@ -106,11 +106,11 @@ end
 ---
 
 ## `docs/info.md`
-```markdown
+
 # Pipelined 8-bit ALU (4-bit operands)
 
 ## Credits
-Replace with your credits/affiliations.
+
 
 ## How it works
 This design implements a **two-stage pipelined ALU**:
