@@ -102,4 +102,55 @@ end
 
 ## External hardware
 
-None
+
+---
+
+## `docs/info.md`
+```markdown
+# Pipelined 8-bit ALU (4-bit operands)
+
+## Credits
+Replace with your credits/affiliations.
+
+## How it works
+This design implements a **two-stage pipelined ALU**:
+- **Operands:** `A = ui_in[3:0]`, `B = uio_in[3:0]`
+- **Opcode:** `ui_in[7:5]`
+- **Outputs:** `uo_out[7:0]`
+- **Latency:** 2 cycles from input change to valid output.
+
+### Operations
+- **000 – ADD:** `{0,A} + {0,B}`
+- **001 – SUB:** `{0,A} - {0,B}` (wraps in 8-bit unsigned)
+- **010 – AND:** `A & B`
+- **011 – OR:** `A | B`
+- **100 – XOR:** `A ^ B`
+- **101 – MUL:** `A * B` (4×4 → 8-bit)
+- **110 – SHL1:** `({0,A} << 1)`
+- **111 – CMP:** `A ≥ B ? 1 : 0`
+
+`uio_oe` is held at `0x00` (bidirectional pins used as inputs only). `uio_out` is `0x00`.
+
+## Reset behavior
+Active-low `rst_n` clears pipeline registers to `0x00`.
+
+## How to test
+Use the provided **cocotb** test (`test/test.py`) or the **Verilog** testbench (`test/tb.v`).
+
+### Example scenarios (expect values after 2 clock cycles)
+| OP  | A  | B  | Result |
+|-----|----|----|--------|
+| 000 | 3  | 2  | 5      |
+| 101 | 4  | 3  | 12     |
+| 001 | 9  | 3  | 6      |
+| 100 | 5  | 10 | 15     |
+| 110 | 7  | –  | 14     |
+| 111 | 8  | 12 | 0      |
+| 111 | 12 | 8  | 1      |
+
+To view waveforms:
+```bash
+cd test
+make -B
+gtkwave tb.vcd
+
