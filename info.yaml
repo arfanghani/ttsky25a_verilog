@@ -1,25 +1,16 @@
-# Tiny Tapeout project information
 project:
-  title:        "ALU-test"      # Project title
-  author:       "AGhani"     # Update as you like
-  discord:      "ag"              # Optional
-  description:  "Pipelined 8-bit ALU (4-bit operands) with add/sub/and/or/xor/mul/shl/cmp"
+  title:        "Simple-ALU"
+  author:       "Your Name"
+  discord:      ""
+  description:  "Simple 8-bit ALU with ADD, SUB, AND operations"
   language:     "Verilog"
   clock_hz:     100
-
-  # Tile footprint
-  tiles: "1x1"
-
-  # Top module MUST start with tt_um_
-  top_module:  "tt_um_alu"
-
-  # Source list (each file separately, in ./src)
+  tiles:        "1x1"
+  top_module:   "tt_um_simple_alu"
   source_files:
-    - "tt_um_alu.v"
+    - "tt_um_simple_alu.v"
 
-# Pinout (leave blanks for unused)
 pinout:
-  # Inputs
   ui[0]: "ui_in[0]"
   ui[1]: "ui_in[1]"
   ui[2]: "ui_in[2]"
@@ -29,7 +20,6 @@ pinout:
   ui[6]: "ui_in[6]"
   ui[7]: "ui_in[7]"
 
-  # Outputs
   uo[0]: "uo_out[0]"
   uo[1]: "uo_out[1]"
   uo[2]: "uo_out[2]"
@@ -39,15 +29,13 @@ pinout:
   uo[6]: "uo_out[6]"
   uo[7]: "uo_out[7]"
 
-  # Bidirectional pins (used as inputs here)
   uio[0]: "uio_in[0]"
   uio[1]: "uio_in[1]"
   uio[2]: "uio_in[2]"
   uio[3]: "uio_in[3]"
-  uio[4]: ""
-  uio[5]: ""
-  uio[6]: ""
-  uio[7]: ""
+  uio[4]: "uio_in[4]"
+  uio[5]: "uio_in[5]"
+  uio[6]: "uio_in[6]"
+  uio[7]: "uio_in[7]"
 
-# Do not change!
 yaml_version: 6
