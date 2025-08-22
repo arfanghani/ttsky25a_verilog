@@ -1,48 +1,52 @@
-# Makefile
-# For simulating the tt_um_mac full adder using Cocotb
-# Docs: https://docs.cocotb.org/en/stable/quickstart.html
+import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import ClockCycles
 
-# Simulator & language settings
-SIM ?= icarus
-TOPLEVEL_LANG ?= verilog
+@cocotb.test()
+async def test_full_adder(dut):
+    dut._log.info("Starting full adder test")
 
-# Source directory and design files
-SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = tt_um_mac.v
+    # Start clock (100 MHz)
+    clock = Clock(dut.clk, 10, units="us")
+    cocotb.start_soon(clock.start())
 
-# Simulation mode
-ifneq ($(GATES),yes)
+    # Initialize inputs
+    dut.ena.value = 1
+    dut.ui_in.value = 0
+    dut.uio_in.value = 0
 
-# RTL simulation:
-SIM_BUILD        = sim_build/rtl
-VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
-COMPILE_ARGS    += -I$(SRC_DIR)
+    # Reset
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 1)
 
-else
+    # Test cases: (A, B, Cin, expected_sum, expected_cout)
+    test_cases = [
+        (0, 0, 0, 0, 0),
+        (1, 0, 0, 1, 0),
+        (1, 1, 0, 0, 1),
+        (1, 1, 1, 1, 1),
+        (0, 1, 1, 0, 1),
+        (0, 0, 1, 1, 0),
+        (0, 1, 0, 1, 0),
+        (1, 0, 1, 0, 1),
+    ]
 
-# Gate-level simulation:
-SIM_BUILD        = sim_build/gl
-COMPILE_ARGS    += -DGL_TEST
-COMPILE_ARGS    += -DFUNCTIONAL
-COMPILE_ARGS    += -DUSE_POWER_PINS
-COMPILE_ARGS    += -DSIM
-COMPILE_ARGS    += -DUNIT_DELAY=\#1
+    for A, B, Cin, expected_sum, expected_cout in test_cases:
+        # Pack inputs: ui_in[0] = A, ui_in[1] = B, ui_in[2] = Cin
+        dut.ui_in.value = (Cin << 2) | (B << 1) | A
 
-# Sky130 library files
-VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/primitives.v
-VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v
+        await ClockCycles(dut.clk, 1)  # Wait for output to stabilize
 
-# Your gate-level netlist
-VERILOG_SOURCES += $(PWD)/gate_level_netlist.v
+        # Extract outputs: assuming uo_out[0] = Sum, uo_out[1] = Cout
+        sum_out = int(dut.uo_out.value) & 0b1
+        cout_out = (int(dut.uo_out.value) >> 1) & 0b1
 
-endif
+        dut._log.info(f"A={A}, B={B}, Cin={Cin} -> Sum={sum_out}, Cout={cout_out}")
 
-# Testbench and top-level module
-VERILOG_SOURCES += $(PWD)/tb.v
-TOPLEVEL = tb
+        assert sum_out == expected_sum, f"Sum mismatch: expected {expected_sum}, got {sum_out}"
+        assert cout_out == expected_cout, f"Cout mismatch: expected {expected_cout}, got {cout_out}"
 
-# Python test script (test_project.py → MODULE = test)
-MODULE = test
+    dut._log.info("Full adder tests passed!")
 
-# Include cocotb build rules
-include $(shell cocotb-config --makefiles)/Makefile.sim
