@@ -34,9 +34,7 @@ endif
 
 # Include the testbench sources (tb.v handles VCD dump)
 VERILOG_SOURCES += $(PWD)/tb.v
-
-# Top-level is the DUT, not the testbench
-TOPLEVEL = tt_um_mac
+TOPLEVEL = tb
 
 # Python cocotb test file (without .py)
 MODULE = test
