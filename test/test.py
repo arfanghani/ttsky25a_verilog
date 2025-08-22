@@ -1,49 +1,48 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
-# SPDX-License-Identifier: Apache-2.0
+# Makefile
+# For simulating the tt_um_mac full adder using Cocotb
+# Docs: https://docs.cocotb.org/en/stable/quickstart.html
 
-import cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+# Simulator & language settings
+SIM ?= icarus
+TOPLEVEL_LANG ?= verilog
 
+# Source directory and design files
+SRC_DIR = $(PWD)/../src
+PROJECT_SOURCES = tt_um_mac.v
 
-@cocotb.test()
-async def test_project(dut):
-    dut._log.info("Starting full adder test")
+# Simulation mode
+ifneq ($(GATES),yes)
 
-    # Clock setup
-    clock = Clock(dut.clk, 10, units="ns")  # 100MHz
-    cocotb.start_soon(clock.start())
+# RTL simulation:
+SIM_BUILD        = sim_build/rtl
+VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
+COMPILE_ARGS    += -I$(SRC_DIR)
 
-    # Reset
-    dut.ena.value = 1
-    dut.ui_in.value = 0
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 5)
-    dut.rst_n.value = 1
+else
 
-    # Define test cases: (A, B, Cin, expected_sum, expected_cout)
-    cases = [
-        (0, 0, 0, 0, 0),
-        (1, 0, 0, 1, 0),
-        (1, 1, 0, 0, 1),
-        (1, 1, 1, 1, 1),
-        (0, 1, 1, 0, 1),
-        (0, 0, 1, 1, 0),
-        (0, 1, 0, 1, 0),
-        (1, 0, 1, 0, 1),
-    ]
+# Gate-level simulation:
+SIM_BUILD        = sim_build/gl
+COMPILE_ARGS    += -DGL_TEST
+COMPILE_ARGS    += -DFUNCTIONAL
+COMPILE_ARGS    += -DUSE_POWER_PINS
+COMPILE_ARGS    += -DSIM
+COMPILE_ARGS    += -DUNIT_DELAY=\#1
 
-    for A, B, Cin, expected_sum, expected_cout in cases:
-        dut.ui_in.value = (Cin << 2) | (B << 1) | A
-        await ClockCycles(dut.clk, 1)
+# Sky130 library files
+VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/primitives.v
+VERILOG_SOURCES += $(PDK_ROOT)/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v
 
-        actual_sum = int(dut.uo_out.value) & 0b1
-        actual_cout = (int(dut.uo_out.value) >> 1) & 0b1
+# Your gate-level netlist
+VERILOG_SOURCES += $(PWD)/gate_level_netlist.v
 
-        dut._log.info(f"A={A}, B={B}, Cin={Cin} -> Sum={actual_sum}, Cout={actual_cout}")
+endif
 
-        assert actual_sum == expected_sum, f"Sum mismatch: expected {expected_sum}, got {actual_sum}"
-        assert actual_cout == expected_cout, f"Cout mismatch: expected {expected_cout}, got {actual_cout}"
+# Testbench and top-level module
+VERILOG_SOURCES += $(PWD)/tb.v
+TOPLEVEL = tb
 
-    dut._log.info("Full adder tests passed")
+# Python test script (test_project.py → MODULE = test)
+MODULE = test
+
+# Include cocotb build rules
+include $(shell cocotb-config --makefiles)/Makefile.sim
