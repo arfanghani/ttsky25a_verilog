@@ -5,54 +5,45 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
+
 @cocotb.test()
 async def test_project(dut):
-    """Test 2x2 multiplier + accumulator behavior"""
+    dut._log.info("Starting full adder test")
 
-    dut._log.info("Start")
-
-    # Create a clock with 10us period
-    clock = Clock(dut.clk, 10, units="us")
+    # Clock setup
+    clock = Clock(dut.clk, 10, units="ns")  # 100MHz
     cocotb.start_soon(clock.start())
 
     # Reset
-    dut._log.info("Reset")
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 5)  # wait a few cycles for reset
+    await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
-    await ClockCycles(dut.clk, 1)
 
-    dut._log.info("Test 2x2 multiplier behavior")
-
-    # Test vectors: (A, B, expected product)
-    test_vectors = [
-        (0, 0, 0),
-        (0, 1, 0),
-        (1, 0, 0),
-        (1, 1, 1),
-        (2, 1, 2),
-        (1, 2, 2),
-        (2, 2, 4),
-        (3, 1, 3),
-        (1, 3, 3),
-        (3, 2, 6),
-        (2, 3, 6),
-        (3, 3, 9),
+    # Define test cases: (A, B, Cin, expected_sum, expected_cout)
+    cases = [
+        (0, 0, 0, 0, 0),
+        (1, 0, 0, 1, 0),
+        (1, 1, 0, 0, 1),
+        (1, 1, 1, 1, 1),
+        (0, 1, 1, 0, 1),
+        (0, 0, 1, 1, 0),
+        (0, 1, 0, 1, 0),
+        (1, 0, 1, 0, 1),
     ]
 
-    for a_val, b_val, expected in test_vectors:
-        dut.ui_in.value = a_val
-        dut.uio_in.value = b_val
+    for A, B, Cin, expected_sum, expected_cout in cases:
+        dut.ui_in.value = (Cin << 2) | (B << 1) | A
+        await ClockCycles(dut.clk, 1)
 
-        # Wait 2 clock cycles for registered output to settle
-        await ClockCycles(dut.clk, 2)
+        actual_sum = int(dut.uo_out.value) & 0b1
+        actual_cout = (int(dut.uo_out.value) >> 1) & 0b1
 
-        got = int(dut.uo_out.value)
-        dut._log.info(f"A={a_val} B={b_val} | got={got} expected={expected}")
+        dut._log.info(f"A={A}, B={B}, Cin={Cin} -> Sum={actual_sum}, Cout={actual_cout}")
 
-        assert got == expected, f"Multiplier failed: {a_val}*{b_val} got {got} expected {expected}"
+        assert actual_sum == expected_sum, f"Sum mismatch: expected {expected_sum}, got {actual_sum}"
+        assert actual_cout == expected_cout, f"Cout mismatch: expected {expected_cout}, got {actual_cout}"
 
-    dut._log.info("All test vectors passed!")
+    dut._log.info("Full adder tests passed")
