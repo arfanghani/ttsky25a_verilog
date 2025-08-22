@@ -7,7 +7,7 @@ module tb ();
   initial begin
     $dumpfile("tb.vcd");
     $dumpvars(0, tb);
-   end
+  end
 
   // Declare signals
   reg clk;
@@ -21,11 +21,17 @@ module tb ();
   wire [7:0] uio_out;
   wire [7:0] uio_oe;
 
-  // Instantiate the DUT
+  // Gate-level power pins
+`ifdef GL_TEST
+  wire VPWR = 1'b1;
+  wire VGND = 1'b0;
+`endif
+
+  // Instantiate the DUT (Device Under Test)
   tt_um_mac user_project (
 `ifdef GL_TEST
-    .VPWR(1'b1),
-    .VGND(1'b0),
+    .VPWR(VPWR),
+    .VGND(VGND),
 `endif
     .ui_in(ui_in),
     .uo_out(uo_out),
@@ -78,7 +84,7 @@ module tb ();
     $stop;
   end
 
-  // Match MAC-style output monitoring
+  // Output monitoring
   initial begin
     $monitor("Time=%0t | ui_in=%08b | uo_out=%08b", $time, ui_in, uo_out);
   end
